@@ -10,6 +10,7 @@
 ![NumPy](https://img.shields.io/badge/NumPy-013243?style=for-the-badge&logo=numpy&logoColor=white)
 ![Delta Lake](https://img.shields.io/badge/Delta%20Lake-00ADD4?style=for-the-badge&logo=delta&logoColor=white)
 ![MLflow](https://img.shields.io/badge/MLflow-0194E2?style=for-the-badge&logo=mlflow&logoColor=white)
+![Databricks SQL](https://img.shields.io/badge/Databricks_SQL-FF3621?style=for-the-badge&logo=databricks&logoColor=white)
 
 **End-to-End IAM Security Analytics & Threat Detection Platform**
 
