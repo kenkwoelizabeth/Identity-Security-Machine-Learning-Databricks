@@ -1,0 +1,758 @@
+{
+  "datasets": [
+    {
+      "name": "iam_metrics",
+      "displayName": "IAM Security Metrics",
+      "config": {
+        "source": "identity.default.silver_iam_logs",
+        "measures": [
+          {
+            "displayName": "Login Count",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            },
+            "name": "login_count",
+            "expr": "COUNT(*)",
+            "comment": "Total number of login attempts"
+          },
+          {
+            "displayName": "Failed Logins",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 0.0
+              }
+            },
+            "name": "failed_logins",
+            "expr": "COUNT(*) FILTER (WHERE login_status = 'Failed')",
+            "comment": "Number of failed login attempts"
+          },
+          {
+            "displayName": "Average Risk Score",
+            "format": {
+              "type": "number",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            },
+            "name": "avg_risk_score",
+            "expr": "AVG(risk_score)",
+            "comment": "Average risk score across login attempts"
+          },
+          {
+            "displayName": "Failed Login Rate",
+            "format": {
+              "type": "percentage",
+              "decimalPlaces": {
+                "type": "exact",
+                "places": 2.0
+              }
+            },
+            "name": "failed_login_rate",
+            "expr": "SUM(CASE WHEN login_status = 'Failed' THEN 1.0 ELSE 0 END) / COUNT(*)",
+            "comment": "Percentage of failed login attempts"
+          }
+        ],
+        "version": "1.1",
+        "comment": "Identity and Access Management security metrics for monitoring login activity, risk scores, department usage, device types, and time patterns",
+        "dimensions": [
+          {
+            "name": "department",
+            "expr": "department",
+            "displayName": "Department",
+            "comment": "Department name (HR, IT, Finance, Sales)"
+          },
+          {
+            "name": "login_status",
+            "expr": "login_status",
+            "displayName": "Login Status",
+            "comment": "Login outcome (Success or Failed)"
+          },
+          {
+            "name": "username",
+            "expr": "username",
+            "displayName": "Username",
+            "comment": "User identifier"
+          },
+          {
+            "name": "device_type",
+            "expr": "device_type",
+            "displayName": "Device Type",
+            "comment": "Type of device used for login (Desktop, Mobile, Tablet, Web)"
+          },
+          {
+            "name": "login_hour",
+            "expr": "HOUR(CAST(login_time AS TIMESTAMP))",
+            "displayName": "Login Hour",
+            "comment": "Hour of day when login occurred (0-23)"
+          },
+          {
+            "name": "login_date",
+            "expr": "DATE(CAST(login_time AS TIMESTAMP))",
+            "displayName": "Login Date",
+            "comment": "Date of login attempt"
+          }
+        ]
+      }
+    },
+    {
+      "name": "high_risk_users",
+      "displayName": "High Risk Users",
+      "queryLines": [
+        "SELECT\n",
+        "  username,\n",
+        "  AVG(risk_score) as avg_risk_score\n",
+        "FROM\n",
+        "  identity.default.silver_iam_logs\n",
+        "GROUP BY\n",
+        "  username\n",
+        "ORDER BY\n",
+        "  avg_risk_score DESC\n",
+        "LIMIT 20"
+      ],
+      "catalog": "identity",
+      "schema": "default"
+    }
+  ],
+  "pages": [
+    {
+      "name": "65de6812",
+      "displayName": "Page 1",
+      "layout": [
+        {
+          "widget": {
+            "name": "high_risk_users",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "high_risk_users",
+                  "fields": [
+                    {
+                      "name": "username",
+                      "expression": "`username`"
+                    },
+                    {
+                      "name": "avg_risk_score",
+                      "expression": "`avg_risk_score`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Top 20 High-Risk Users",
+                "showTitle": true
+              },
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "username"
+                  },
+                  {
+                    "fieldName": "avg_risk_score",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "none",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 2
+                      }
+                    },
+                    "displayName": "Avg Risk Score"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "login_status_dist",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "iam_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(login_count)",
+                      "expression": "MEASURE(`login_count`)"
+                    },
+                    {
+                      "name": "login_status",
+                      "expression": "`login_status`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Login Status Distribution",
+                "showTitle": true
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(login_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  },
+                  "displayName": "Logins"
+                },
+                "color": {
+                  "fieldName": "login_status",
+                  "displayName": "Login Status",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true,
+                  "text": {
+                    "fieldName": "measure(login_count)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "dept_activity",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "iam_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(login_count)",
+                      "expression": "MEASURE(`login_count`)"
+                    },
+                    {
+                      "name": "department",
+                      "expression": "`department`"
+                    }
+                  ],
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "ASC",
+                      "expression": "MEASURE(`login_count`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Department Activity",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "department",
+                  "displayName": "Department",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "measure",
+                      "measure": {
+                        "fieldName": "measure(login_count)"
+                      }
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(login_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  },
+                  "displayName": "Logins",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true,
+                  "text": {
+                    "fieldName": "measure(login_count)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "total_logins",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "iam_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(login_count)",
+                      "expression": "MEASURE(`login_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Total Login Attempts",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(login_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "failed_login_rate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "iam_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(failed_login_rate)",
+                      "expression": "MEASURE(`failed_login_rate`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Failed Login Rate",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(failed_login_rate)",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "avg_risk_score",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "iam_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(avg_risk_score)",
+                      "expression": "MEASURE(`avg_risk_score`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "frame": {
+                "title": "Average Risk Score",
+                "showTitle": true
+              },
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "measure(avg_risk_score)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "none",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 2
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "failed_logins_by_dept_v2",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "iam_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(failed_logins)",
+                      "expression": "MEASURE(`failed_logins`)"
+                    },
+                    {
+                      "name": "department",
+                      "expression": "`department`"
+                    }
+                  ],
+                  "disaggregated": false,
+                  "orders": [
+                    {
+                      "direction": "ASC",
+                      "expression": "MEASURE(`failed_logins`)"
+                    }
+                  ]
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Failed Logins by Department",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "department",
+                  "displayName": "Department",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "measure",
+                      "measure": {
+                        "fieldName": "measure(failed_logins)"
+                      }
+                    }
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(failed_logins)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  },
+                  "displayName": "Failed Logins",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true,
+                  "text": {
+                    "fieldName": "measure(failed_logins)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "dashboard_header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## <span style=\"text-align:center;display:block;\">IAM Security Analytics Dashboard</span>\n",
+                "\n",
+                "<span style=\"text-align:center;display:block;\">Comprehensive overview of identity and access management security metrics, login patterns, and risk indicators across departments.</span>"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "device_type_dist",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "iam_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(login_count)",
+                      "expression": "MEASURE(`login_count`)"
+                    },
+                    {
+                      "name": "device_type",
+                      "expression": "`device_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Logins by Device Type",
+                "showTitle": true
+              },
+              "widgetType": "pie",
+              "encodings": {
+                "angle": {
+                  "fieldName": "measure(login_count)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  },
+                  "displayName": "Logins"
+                },
+                "color": {
+                  "fieldName": "device_type",
+                  "displayName": "Device Type",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "label": {
+                  "show": true,
+                  "text": {
+                    "fieldName": "measure(login_count)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "login_hour_activity",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "iam_metrics",
+                  "fields": [
+                    {
+                      "name": "measure(login_count)",
+                      "expression": "MEASURE(`login_count`)"
+                    },
+                    {
+                      "name": "login_hour",
+                      "expression": "`login_hour`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "frame": {
+                "title": "Login Activity by Hour",
+                "showTitle": true
+              },
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "login_hour",
+                  "displayName": "Hour of Day",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "measure(login_count)",
+                  "format": {
+                    "type": "number-plain",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "exact",
+                      "places": 0
+                    }
+                  },
+                  "displayName": "Logins",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                },
+                "label": {
+                  "show": true,
+                  "text": {
+                    "fieldName": "measure(login_count)",
+                    "format": {
+                      "type": "number-plain",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "exact",
+                        "places": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 16,
+            "width": 6,
+            "height": 5
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED"
+    },
+    "applyModeEnabled": false
+  }
+}
